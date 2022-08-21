@@ -79,9 +79,31 @@ double VertexPositionGeometry::totalArea() const {
  * Returns: The cotan of the angle opposite the given halfedge.
  */
 double VertexPositionGeometry::cotan(Halfedge he) const {
+    //assume it's a trinagle A - B - C
+    //and current face is AB
+    //  C
+    // / \
+    //A---B
+    assert(he.next().next().next() == he);
 
-    // TODO
-    return 0; // placeholder
+    const auto& edge_AB = he;
+    const auto& edge_BC = he.next();
+
+    const auto vertex_A = edge_AB.tailVertex();
+    const auto vertex_B = edge_AB.tipVertex();
+    const auto vertex_C = edge_BC.tipVertex();
+
+    const auto vector_CA = (inputVertexPositions[vertex_A] - inputVertexPositions[vertex_C]).normalize();
+    const auto vector_CB = (inputVertexPositions[vertex_B] - inputVertexPositions[vertex_C]).normalize();
+
+    const auto cosine = dot(vector_CA, vector_CB);
+    const auto sine = norm(cross(vector_CA, vector_CB));
+
+    const auto cotan_value = cosine / sine;
+
+    assert(halfedgeCotanWeight(he) == cotan_value);
+    
+    return cotan_value;
 }
 
 /*
@@ -91,9 +113,15 @@ double VertexPositionGeometry::cotan(Halfedge he) const {
  * Returns: The barycentric dual area of the given vertex.
  */
 double VertexPositionGeometry::barycentricDualArea(Vertex v) const {
+    const auto& adjacent_faces = v.adjacentFaces();
 
-    // TODO
-    return 0; // placeholder
+    const auto total_area = std::accumulate(adjacent_faces.begin(), adjacent_faces.end(), 0.0, 
+        [this]( double area, const Face& face) { return area += faceArea(face); });
+
+    const auto dual_area = total_area / 3;
+    assert(dual_area == vertexDualArea(v));
+
+    return dual_area;
 }
 
 /*
